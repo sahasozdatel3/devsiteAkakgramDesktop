@@ -256,10 +256,10 @@ style::colorizer ColorizerFrom(
 		break;
 	case EmbeddedType::NightGreen:
 		result.keepContrast = base::flat_map<QLatin1String, Pair>{ {
-			//{ qstr("windowFgActive"), Pair{ cColor("3fc1b0"), cColor("282e33") } }, // windowBgActive, windowBg
-			{ qstr("activeButtonFg"), Pair{ cColor("2da192"), cColor("282e33") } }, // activeButtonBg, windowBg
-			{ qstr("profileVerifiedCheckFg"), Pair{ cColor("3fc1b0"), cColor("282e33") } }, // profileVerifiedCheckBg, windowBg
-			{ qstr("overviewCheckFgActive"), Pair{ cColor("3fc1b0"), cColor("282e33") } }, // overviewCheckBgActive
+			//{ qstr("windowFgActive"), Pair{ cColor("5ee0a0"), cColor("12151c") } }, // windowBgActive, windowBg
+			{ qstr("activeButtonFg"), Pair{ cColor("3fbf87"), cColor("12151c") } }, // activeButtonBg, windowBg
+			{ qstr("profileVerifiedCheckFg"), Pair{ cColor("5ee0a0"), cColor("12151c") } }, // profileVerifiedCheckBg, windowBg
+			{ qstr("overviewCheckFgActive"), Pair{ cColor("5ee0a0"), cColor("12151c") } }, // overviewCheckBgActive
 			// callIconFg is used not only over callAnswerBg,
 			// so this contrast-forcing breaks other buttons.
 			//{ qstr("callIconFg"), Pair{ cColor("5ad1c1"), cColor("1b1f23") } }, // callAnswerBg, callBgOpaque
@@ -392,7 +392,7 @@ std::vector<EmbeddedScheme> EmbeddedThemes() {
 			qColor("75bfb5"),
 			name(tr::lng_settings_theme_night),
 			":/gui/night-green.tdesktop-theme",
-			qColor("3fc1b0")
+			qColor("5ee0a0")
 		},
 	};
 }
