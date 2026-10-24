@@ -226,6 +226,9 @@ createThemeLink: InputField(defaultInputField) {
 	heightMin: 34px;
 }
 
+akakPanelInset: 6px;
+akakPanelRadius: 22px;
+
 windowFiltersWidth: 72px;
 windowFiltersButton: SideBarButton(defaultSideBarButton) {
 	textTop: 40px;

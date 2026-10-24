@@ -43,6 +43,10 @@ class LayerStackWidget;
 
 class MediaPreviewWidget;
 
+namespace Window {
+class PanelsFrame;
+} // namespace Window
+
 extern const char kOptionAutoScrollInactiveChat[];
 
 class MainWindow : public Platform::MainWindow {
@@ -133,6 +137,7 @@ private:
 	void ensureLayerCreated();
 	void destroyLayer();
 	void raiseMediaPreview();
+	void updatePanelsFrame();
 
 	void themeUpdated(const Window::Theme::BackgroundUpdate &data);
 
@@ -143,6 +148,7 @@ private:
 	object_ptr<Intro::Widget> _intro = { nullptr };
 	object_ptr<MainWidget> _main = { nullptr };
 	base::unique_qptr<Ui::LayerStackWidget> _layer;
+	base::unique_qptr<Window::PanelsFrame> _panelsFrame;
 	rpl::variable<bool> _boxShown = false;
 	object_ptr<Window::MediaPreviewWidget> _mediaPreview = { nullptr };
 

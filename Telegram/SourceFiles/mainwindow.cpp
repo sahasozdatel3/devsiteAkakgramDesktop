@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_setup_email.h"
 #include "window/window_media_preview.h"
+#include "window/window_panels_frame.h"
 #include "styles/style_window.h"
 
 #include <QtGui/QWindow>
@@ -159,6 +160,7 @@ void MainWindow::finishFirstShow() {
 }
 
 void MainWindow::clearWidgetsHook() {
+	_panelsFrame = nullptr;
 	_mediaPreview.destroy();
 	_main.destroy();
 	_intro.destroy();
@@ -339,6 +341,11 @@ void MainWindow::setupMain(
 	auto created = object_ptr<MainWidget>(bodyWidget(), sessionController());
 	clearWidgets();
 	_main = std::move(created);
+	_panelsFrame = base::make_unique_q<Window::PanelsFrame>(bodyWidget());
+	_main->panelsChanged(
+	) | rpl::on_next([=] {
+		updatePanelsFrame();
+	}, _main->lifetime());
 	updateControlsGeometry();
 	Ui::SendPendingMoveResizeEvents(_main);
 	_main->controller()->showByInitialId(
@@ -712,6 +719,37 @@ bool MainWindow::takeThirdSectionFromLayer() {
 	return _layer ? _layer->takeToThirdSection() : false;
 }
 
+void MainWindow::updatePanelsFrame() {
+	if (!_panelsFrame || !_main) {
+		return;
+	}
+	const auto body = bodyWidget()->rect();
+	auto panels = std::vector<QRect>();
+	const auto main = _main->panelRects();
+	if (main.empty()) {
+		_panelsFrame->hide();
+		return;
+	}
+	if (const auto session = sessionController()) {
+		if (const auto skip = session->filtersWidth()) {
+			const auto inset = st::akakPanelInset;
+			panels.push_back(QRect(
+				inset,
+				inset,
+				skip - 2 * inset,
+				body.height() - 2 * inset));
+		}
+	}
+	for (const auto &rect : main) {
+		panels.push_back(rect.translated(_main->pos()));
+	}
+	_panelsFrame->setGeometry(body);
+	_panelsFrame->setPanels(std::move(panels));
+	_panelsFrame->show();
+	_panelsFrame->raise();
+	fixOrder();
+}
+
 void MainWindow::fixOrder() {
 	if (_setupEmailLock) _setupEmailLock->raise();
 	if (_passcodeLock) _passcodeLock->raise();
@@ -777,6 +815,7 @@ void MainWindow::updateControlsGeometry() {
 	if (_testingThemeWarning) _testingThemeWarning->setGeometry(body);
 
 	if (_main) _main->checkMainSectionToLayer();
+	updatePanelsFrame();
 }
 
 void MainWindow::handleStartFiles(QStringList paths) {

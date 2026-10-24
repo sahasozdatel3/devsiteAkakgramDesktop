@@ -229,6 +229,9 @@ public:
 	void dialogsCancelled();
 	void toggleFiltersMenu(bool value) const;
 
+	[[nodiscard]] std::vector<QRect> panelRects() const;
+	[[nodiscard]] rpl::producer<> panelsChanged() const;
+
 private:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
@@ -378,6 +381,7 @@ private:
 	int _callTopBarHeight = 0;
 	int _exportTopBarHeight = 0;
 	int _contentScrollAddToY = 0;
+	rpl::event_stream<> _panelsChanged;
 
 	struct SettingBackground;
 	std::unique_ptr<SettingBackground> _background;

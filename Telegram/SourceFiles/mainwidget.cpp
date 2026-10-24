@@ -2739,14 +2739,15 @@ void MainWidget::updateControlsGeometry() {
 			_contentScrollAddToY);
 		if (_hider) _hider->setGeometry(0, 0, dialogsWidth, height());
 	} else {
+		const auto inset = st::akakPanelInset;
 		auto thirdSectionWidth = _thirdSection ? _thirdColumnWidth : 0;
 		if (_thirdSection) {
 			auto thirdSectionTop = getThirdSectionTop();
 			_thirdSection->setGeometry(
-				width() - thirdSectionWidth,
-				thirdSectionTop,
-				thirdSectionWidth,
-				height() - thirdSectionTop);
+				width() - thirdSectionWidth + inset,
+				thirdSectionTop + inset,
+				thirdSectionWidth - 2 * inset,
+				height() - thirdSectionTop - 2 * inset);
 		}
 		const auto shadowTop = _controller->window().verticalShadowTop();
 		const auto shadowHeight = height() - shadowTop;
@@ -2754,7 +2755,11 @@ void MainWidget::updateControlsGeometry() {
 			accumulate_min(
 				dialogsWidth,
 				width() - st::columnMinimalWidthMain);
-			_dialogs->setGeometryToLeft(0, 0, dialogsWidth, height());
+			_dialogs->setGeometryToLeft(
+				inset,
+				inset,
+				dialogsWidth - 2 * inset,
+				height() - 2 * inset);
 		}
 		if (_sideShadow) {
 			_sideShadow->setGeometryToLeft(
@@ -2773,40 +2778,44 @@ void MainWidget::updateControlsGeometry() {
 		const auto mainSectionWidth = width()
 			- dialogsWidth
 			- thirdSectionWidth;
+		const auto innerWidth = mainSectionWidth - 2 * inset;
 		if (_callTopBar) {
-			_callTopBar->resizeToWidth(mainSectionWidth);
-			_callTopBar->moveToLeft(dialogsWidth, 0);
+			_callTopBar->resizeToWidth(innerWidth);
+			_callTopBar->moveToLeft(dialogsWidth + inset, inset);
 		}
 		if (_exportTopBar) {
-			_exportTopBar->resizeToWidth(mainSectionWidth);
-			_exportTopBar->moveToLeft(dialogsWidth, _callTopBarHeight);
+			_exportTopBar->resizeToWidth(innerWidth);
+			_exportTopBar->moveToLeft(
+				dialogsWidth + inset,
+				inset + _callTopBarHeight);
 		}
 		if (_player) {
-			_player->resizeToWidth(mainSectionWidth);
+			_player->resizeToWidth(innerWidth);
 			_player->moveToLeft(
-				dialogsWidth,
-				_callTopBarHeight + _exportTopBarHeight);
+				dialogsWidth + inset,
+				inset + _callTopBarHeight + _exportTopBarHeight);
 		}
 		_history->setGeometryWithTopMoved(QRect(
-			dialogsWidth,
-			mainSectionTop,
-			mainSectionWidth,
-			height() - mainSectionTop
+			dialogsWidth + inset,
+			mainSectionTop + inset,
+			innerWidth,
+			height() - mainSectionTop - 2 * inset
 		), _contentScrollAddToY);
 		if (_hider) {
 			_hider->setGeometryToLeft(
-				dialogsWidth,
-				0,
-				mainSectionWidth,
-				height());
+				dialogsWidth + inset,
+				inset,
+				innerWidth,
+				height() - 2 * inset);
 		}
 	}
 	if (_mainSection) {
+		const auto vertical = isOneColumn() ? 0 : st::akakPanelInset;
 		const auto mainSectionGeometry = QRect(
 			_history->x(),
-			mainSectionTop,
+			mainSectionTop + vertical,
 			_history->width(),
-			height() - mainSectionTop);
+			height() - mainSectionTop - 2 * vertical);
 		_mainSection->setGeometryWithTopMoved(
 			mainSectionGeometry,
 			_contentScrollAddToY);
@@ -2819,6 +2828,30 @@ void MainWidget::updateControlsGeometry() {
 	_contentScrollAddToY = 0;
 
 	floatPlayerUpdatePositions();
+	_panelsChanged.fire({});
+}
+
+std::vector<QRect> MainWidget::panelRects() const {
+	auto result = std::vector<QRect>();
+	if (isOneColumn()) {
+		return result;
+	}
+	if (_dialogs) {
+		result.push_back(_dialogs->geometry());
+	}
+	result.push_back(QRect(
+		_history->x(),
+		st::akakPanelInset,
+		_history->width(),
+		height() - 2 * st::akakPanelInset));
+	if (_thirdSection) {
+		result.push_back(_thirdSection->geometry());
+	}
+	return result;
+}
+
+rpl::producer<> MainWidget::panelsChanged() const {
+	return _panelsChanged.events();
 }
 
 void MainWidget::destroyThirdSection() {
@@ -2834,7 +2867,7 @@ void MainWidget::refreshResizeAreas() {
 	if (!isOneColumn() && _dialogs) {
 		ensureFirstColumnResizeAreaCreated();
 		_firstColumnResizeArea->setGeometryToLeft(
-			_history->x(),
+			_history->x() - st::akakPanelInset,
 			0,
 			st::historyResizeWidth,
 			height());
@@ -2845,7 +2878,7 @@ void MainWidget::refreshResizeAreas() {
 	if (isThreeColumn() && _thirdSection) {
 		ensureThirdColumnResizeAreaCreated();
 		_thirdColumnResizeArea->setGeometryToLeft(
-			_thirdSection->x(),
+			_thirdSection->x() - st::akakPanelInset,
 			0,
 			st::historyResizeWidth,
 			height());

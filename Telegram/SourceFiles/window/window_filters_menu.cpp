@@ -142,12 +142,14 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto width = st::windowFiltersWidth;
-		_outer.setGeometry({ 0, 0, width, height });
+		const auto inset = st::akakPanelInset;
+		const auto width = st::windowFiltersWidth - 2 * inset;
+		const auto inner = height - 2 * inset;
+		_outer.setGeometry({ inset, inset, width, inner });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);
 		_scroll.setGeometry(
-			{ 0, _menu.height(), width, height - _menu.height() });
+			{ 0, _menu.height(), width, inner - _menu.height() });
 		_container->resizeToWidth(width);
 		_container->move(0, 0);
 	}, _outer.lifetime());

@@ -1150,7 +1150,7 @@ private:
 	mutable bool _recentEmojiResolved = false;
 	base::flat_map<QString, uint8> _emojiVariants;
 	rpl::event_stream<> _recentEmojiUpdated;
-	bool _tabbedSelectorSectionEnabled = false; // per-window
+	bool _tabbedSelectorSectionEnabled = true; // per-window
 	Window::Column _floatPlayerColumn = Window::Column(); // per-window
 	RectPart _floatPlayerCorner = RectPart(); // per-window
 	bool _thirdSectionInfoEnabled = true; // per-window

@@ -2413,6 +2413,8 @@ PRIVATE
     window/window_media_preview.h
     window/window_no_paid_token.cpp
     window/window_no_paid_token.h
+    window/window_panels_frame.cpp
+    window/window_panels_frame.h
     window/window_peer_menu.cpp
     window/window_peer_menu.h
     window/window_restore_shell.cpp
