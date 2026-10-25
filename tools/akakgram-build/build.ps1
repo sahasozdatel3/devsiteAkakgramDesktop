@@ -91,7 +91,7 @@ function Refresh-Path {
 function Find-Vs {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path $vswhere)) { return $null }
-    $path = & $vswhere -latest -products * `
+    $path = & $vswhere -latest -prerelease -products * `
         -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
         -property installationPath 2>$null
     if ([string]::IsNullOrWhiteSpace($path)) { return $null }
