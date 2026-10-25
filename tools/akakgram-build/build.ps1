@@ -127,6 +127,43 @@ function Install-WithWinget([string]$id, [string]$title) {
     return ($code -eq 0)
 }
 
+function Install-VsCpp {
+    $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+    $vswhere = Join-Path $installer 'vswhere.exe'
+    $existing = $null
+    if (Test-Path $vswhere) {
+        $existing = & $vswhere -latest -prerelease -products * -property installationPath 2>$null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($existing)) {
+        $existing = ($existing | Select-Object -First 1).Trim()
+        $setup = Join-Path $installer 'setup.exe'
+        Write-Line ('  Добавляю компоненты C++ в уже установленную Visual Studio: ' + $existing) 'Gray'
+        Write-Note 'Появится окно Windows с просьбой разрешить изменения, нажмите «Да».'
+        Write-Note 'Установка займёт 10–30 минут и скачает около 8–10 ГБ.'
+        $args = @('modify', '--installPath', ('"' + $existing + '"'),
+            '--add', 'Microsoft.VisualStudio.Workload.NativeDesktop',
+            '--includeRecommended', '--passive', '--norestart')
+        try {
+            $proc = Start-Process -FilePath $setup -ArgumentList $args -Wait -PassThru -Verb RunAs
+            return ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010)
+        } catch {
+            Write-Bad 'Установка отменена или не удалась.'
+            return $false
+        }
+    }
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Bad 'winget не найден: установите Visual Studio Community вручную.'
+        return $false
+    }
+    Write-Line '  Устанавливаю Visual Studio Build Tools с C++ (без лишней оболочки)...' 'Gray'
+    Write-Note 'Появится окно Windows с просьбой разрешить изменения, нажмите «Да».'
+    Write-Note 'Установка займёт 10–30 минут и скачает около 8–10 ГБ.'
+    & winget install --id Microsoft.VisualStudio.2022.BuildTools -e --accept-package-agreements --accept-source-agreements `
+        --override '--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart' | Out-Host
+    return ($LASTEXITCODE -eq 0)
+}
+
 function Check-Tools {
     $result = [ordered]@{ Ok = $true; VsPath = $null; Msvc = $false; Sdk = $false }
 
@@ -173,6 +210,12 @@ function Check-Tools {
     }
 
     $vs = Find-Vs
+    if (-not $vs) {
+        Write-Bad 'Visual Studio с компонентами C++ не найдена.'
+        if ((Ask-Yes 'Установить компоненты C++ автоматически?') -and (Install-VsCpp)) {
+            $vs = Find-Vs
+        }
+    }
     if ($vs) {
         $result.VsPath = $vs
         Write-Ok ('Visual Studio с компонентами C++ найдена: ' + $vs)
