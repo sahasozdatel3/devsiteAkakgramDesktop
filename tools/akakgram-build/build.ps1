@@ -164,6 +164,34 @@ function Install-VsCpp {
     return ($LASTEXITCODE -eq 0)
 }
 
+function Test-Msvc([string]$vsPath) {
+    $msvcDir = Join-Path $vsPath 'VC\Tools\MSVC'
+    if (-not (Test-Path $msvcDir)) { return $false }
+    $found = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -like ($MsvcPinned + '*') }
+    return [bool]$found
+}
+
+function Install-VsToolset([string]$vsPath) {
+    $setup = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
+    if (-not (Test-Path $setup)) {
+        Write-Bad 'Не найден установщик Visual Studio.'
+        return $false
+    }
+    Write-Line '  Добавляю набор инструментов MSVC v143 в Visual Studio...' 'Gray'
+    Write-Note 'Появится окно Windows с просьбой разрешить изменения, нажмите «Да».'
+    Write-Note 'Установка займёт 5–15 минут и скачает около 2–3 ГБ.'
+    $args = @('modify', '--installPath', ('"' + $vsPath + '"'),
+        '--add', 'Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64',
+        '--passive', '--norestart')
+    try {
+        $proc = Start-Process -FilePath $setup -ArgumentList $args -Wait -PassThru -Verb RunAs
+        return ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010)
+    } catch {
+        Write-Bad 'Установка отменена или не удалась.'
+        return $false
+    }
+}
+
 function Check-Tools {
     $result = [ordered]@{ Ok = $true; VsPath = $null; Msvc = $false; Sdk = $false }
 
@@ -219,14 +247,20 @@ function Check-Tools {
     if ($vs) {
         $result.VsPath = $vs
         Write-Ok ('Visual Studio с компонентами C++ найдена: ' + $vs)
-        $msvcDir = Join-Path $vs 'VC\Tools\MSVC'
-        if ((Test-Path $msvcDir) -and (Get-ChildItem $msvcDir -Directory |
-                Where-Object { $_.Name -like ($MsvcPinned + '*') })) {
+        if (Test-Msvc $vs) {
             $result.Msvc = $true
-            Write-Ok ('Набор инструментов MSVC ' + $MsvcPinned + ' на месте.')
+            Write-Ok ('Набор инструментов MSVC v143 (' + $MsvcPinned + ') на месте.')
         } else {
-            Write-Warn ('MSVC ' + $MsvcPinned + ' не установлен, соберу с тем, что есть.')
-            Write-Note 'Для поддержки Windows 7 установите компонент MSVC v14.44 в Visual Studio Installer.'
+            Write-Bad ('Нет набора инструментов MSVC v143 (' + $MsvcPinned + '): без него не соберутся библиотеки.')
+            Write-Note 'Это компонент «MSVC v143 - VS 2022 C++ x64/x86 build tools» из Visual Studio Installer.'
+            if ((Ask-Yes 'Установить его автоматически?') -and (Install-VsToolset $vs) -and (Test-Msvc $vs)) {
+                $result.Msvc = $true
+                Write-Ok 'Набор инструментов MSVC v143 установлен.'
+            } else {
+                $result.Ok = $false
+                Write-Note 'Откройте Visual Studio Installer, Изменить, вкладка «Отдельные компоненты»,'
+                Write-Note 'найдите «v143» и отметьте «MSVC v143 - VS 2022 C++ x64/x86 build tools (v14.44-17.14)».'
+            }
         }
     } else {
         Write-Bad 'Visual Studio с «Разработкой классических приложений на C++» не найдена.'
