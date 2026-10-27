@@ -167,8 +167,11 @@ function Install-VsCpp {
 function Test-Msvc([string]$vsPath) {
     $msvcDir = Join-Path $vsPath 'VC\Tools\MSVC'
     if (-not (Test-Path $msvcDir)) { return $false }
-    $found = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -like ($MsvcPinned + '*') }
-    return [bool]$found
+    $tools = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -like ($MsvcPinned + '*') }
+    if (-not $tools) { return $false }
+    # MSBuild ищет именно набор инструментов платформы v143, одной папки MSVC мало.
+    $glob = Join-Path $vsPath 'MSBuild\Microsoft\VC\*\Platforms\x64\PlatformToolsets\v143'
+    return [bool](Get-Item -Path $glob -ErrorAction SilentlyContinue)
 }
 
 function Install-VsToolset([string]$vsPath) {
@@ -177,19 +180,26 @@ function Install-VsToolset([string]$vsPath) {
         Write-Bad 'Не найден установщик Visual Studio.'
         return $false
     }
-    Write-Line '  Добавляю набор инструментов MSVC v143 в Visual Studio...' 'Gray'
-    Write-Note 'Появится окно Windows с просьбой разрешить изменения, нажмите «Да».'
-    Write-Note 'Установка займёт 5–15 минут и скачает около 2–3 ГБ.'
-    $args = @('modify', '--installPath', ('"' + $vsPath + '"'),
-        '--add', 'Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64',
-        '--passive', '--norestart')
-    try {
-        $proc = Start-Process -FilePath $setup -ArgumentList $args -Wait -PassThru -Verb RunAs
-        return ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010)
-    } catch {
-        Write-Bad 'Установка отменена или не удалась.'
-        return $false
+    $ids = @(
+        'Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64',
+        'Microsoft.VisualStudio.Component.VC.v143.x86.x64'
+    )
+    foreach ($id in $ids) {
+        Write-Line ('  Добавляю набор инструментов MSVC v143 (' + $id + ')...') 'Gray'
+        Write-Note 'Появится окно Windows с просьбой разрешить изменения, нажмите «Да».'
+        Write-Note 'Установка займёт 5–15 минут и скачает около 2–3 ГБ.'
+        $args = @('modify', '--installPath', ('"' + $vsPath + '"'),
+            '--add', $id, '--passive', '--norestart')
+        try {
+            $proc = Start-Process -FilePath $setup -ArgumentList $args -Wait -PassThru -Verb RunAs
+            Write-Note ('Код завершения установщика: ' + $proc.ExitCode)
+        } catch {
+            Write-Bad 'Установка отменена или не удалась.'
+            return $false
+        }
+        if (Test-Msvc $vsPath) { return $true }
     }
+    return $false
 }
 
 function Check-Tools {
